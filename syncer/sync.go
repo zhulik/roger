@@ -27,6 +27,10 @@ func Sync(conn *sftp.Client, local string, remote string, workers int) {
 			filesToSync = append(filesToSync, info)
 		}
 	}
+	if len(filesToSync) == 0 {
+		log.Println("Nothing to sync, exiting...")
+		return
+	}
 	log.Printf("Found %d files to sync", len(filesToSync))
 	// log.Printf("Syncing with %d workers...", workers)
 	log.Println("Naive syncing...")
@@ -39,10 +43,8 @@ func Sync(conn *sftp.Client, local string, remote string, workers int) {
 	go func() {
 		for _, info := range filesToSync {
 			localPath := filepath.Join(local, info.RelativePath)
-			// log.Printf("Syncing %s to %s", info.FullPath, localPath)
 			jobs <- DownloadJob{Info: info, LocalPath: localPath}
 		}
-		log.Println("Closing jobs...")
 		close(jobs)
 	}()
 
@@ -50,12 +52,7 @@ func Sync(conn *sftp.Client, local string, remote string, workers int) {
 	logWg.Add(1)
 	go outputWorker(filesToSync, progress, &logWg)
 
-	log.Println("Waiting for jobs..")
 	wg.Wait()
-
-	log.Println("Closing progress...")
 	close(progress)
-
-	log.Println("Waiting for progress...")
 	logWg.Wait()
 }
