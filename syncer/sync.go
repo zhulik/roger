@@ -32,13 +32,14 @@ func Sync(conn *sftp.Client, local string, remote string, workers int) {
 		return
 	}
 	log.Printf("Found %d files to sync", len(filesToSync))
-	// log.Printf("Syncing with %d workers...", workers)
-	log.Println("Naive syncing...")
+	log.Printf("Syncing with %d workers...", workers)
 	jobs := make(chan DownloadJob)
 	progress := make(chan FileProgressInfo)
 	wg := sync.WaitGroup{}
-	wg.Add(1)
-	go downloadWorker(conn, jobs, progress, &wg)
+	for i := 0; i < workers; i++ {
+		wg.Add(1)
+		go downloadWorker(conn, jobs, progress, &wg)
+	}
 
 	go func() {
 		for _, info := range filesToSync {
