@@ -58,9 +58,9 @@ func addBar(p *mpb.Progress, name string, size int64) *mpb.Bar {
 			decor.CountersKibiByte(truncateString(name, 20)+": % 6.1f / % 6.1f"),
 		),
 		mpb.AppendDecorators(
-			decor.EwmaETA(decor.ET_STYLE_MMSS, 1024),
+			decor.AverageETA(decor.ET_STYLE_MMSS),
 			decor.Name(" | "),
-			decor.AverageSpeed(decor.UnitKiB, "% .2f"),
+			decor.AverageSpeed(decor.UnitKiB, "% .1f"),
 		),
 	)
 }

@@ -25,22 +25,8 @@ func preparePath(fPath string) error {
 }
 
 func progressCopy(r io.Reader, w io.Writer, progress chan<- ProgressInfo) {
-	tee := io.TeeReader(r, w)
-	buf := make([]byte, 1<<20)
-	var copied int64
-	for {
-		n, err := tee.Read(buf)
-		if err == io.EOF {
-			copied += int64(n)
-			progress <- ProgressInfo{Increment: int64(n), Total: copied}
-			break
-		}
-		if err != nil {
-			panic(err)
-		}
-		copied += int64(n)
-		progress <- ProgressInfo{Increment: int64(n), Total: copied}
-	}
+	counter := &WriteCounter{Writer: w, Progress: progress}
+	io.Copy(counter, r)
 	close(progress)
 }
 

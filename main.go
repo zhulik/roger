@@ -15,7 +15,7 @@ import (
 var (
 	localDir  = flag.String("local", "", "Local directory path")
 	remoteURL = flag.String("remote", "", "Remote directory URL")
-	workers   = flag.Int("workers", 8, "Count of download workers")
+	workers   = flag.Int("workers", 16, "Count of download workers")
 )
 
 func main() {
