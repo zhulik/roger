@@ -6,7 +6,7 @@ import (
 	"github.com/pkg/sftp"
 )
 
-func downloadWorker(conn *sftp.Client, jobs <-chan DownloadJob, progress chan<- ProgressInfo, wg *sync.WaitGroup) {
+func downloadWorker(conn *sftp.Client, jobs <-chan DownloadJob, progress chan<- FileProgressInfo, wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	for job := range jobs {

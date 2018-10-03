@@ -31,7 +31,7 @@ func Sync(conn *sftp.Client, local string, remote string, workers int) {
 	// log.Printf("Syncing with %d workers...", workers)
 	log.Println("Naive syncing...")
 	jobs := make(chan DownloadJob)
-	progress := make(chan ProgressInfo)
+	progress := make(chan FileProgressInfo)
 	wg := sync.WaitGroup{}
 	wg.Add(1)
 	go downloadWorker(conn, jobs, progress, &wg)

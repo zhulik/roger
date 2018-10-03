@@ -12,7 +12,7 @@ func overallSize(files []FileInfo) (size int64) {
 	return
 }
 
-func outputWorker(files []FileInfo, progress <-chan ProgressInfo, wg *sync.WaitGroup) {
+func outputWorker(files []FileInfo, progress <-chan FileProgressInfo, wg *sync.WaitGroup) {
 	defer wg.Done()
 	count := len(files)
 	size := overallSize(files)
@@ -21,10 +21,10 @@ func outputWorker(files []FileInfo, progress <-chan ProgressInfo, wg *sync.WaitG
 	var downloadedBytes int64
 
 	for p := range progress {
-		if p.Progress == p.Info.Info.Size() {
+		if p.Progress.Total == p.Info.Info.Size() {
 			downloadedCount++
 		}
-		downloadedBytes += p.Progress
+		downloadedBytes += p.Progress.Increment
 		log.Printf("Progress count=%d/%d bytes=%d/%d percent=%f", downloadedCount, count, downloadedBytes, size, float64(downloadedBytes)/float64(size)*100)
 	}
 }
