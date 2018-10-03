@@ -7,17 +7,23 @@ import (
 	"github.com/pkg/sftp"
 )
 
-func containsFile(s []os.FileInfo, e os.FileInfo) bool {
+type FileInfo struct {
+	FullPath     string
+	RelativePath string
+	Info         os.FileInfo
+}
+
+func containsFile(s []FileInfo, e FileInfo) bool {
 	for _, a := range s {
-		if a.Name() == e.Name() {
+		if a.RelativePath == e.RelativePath {
 			return true
 		}
 	}
 	return false
 }
 
-func recursiveRemoteList(conn *sftp.Client, root string) []os.FileInfo {
-	list := []os.FileInfo{}
+func recursiveRemoteList(conn *sftp.Client, root string) []FileInfo {
+	list := []FileInfo{}
 	walker := conn.Walk(root)
 	for walker.Step() {
 		if err := walker.Err(); err != nil {
@@ -27,16 +33,23 @@ func recursiveRemoteList(conn *sftp.Client, root string) []os.FileInfo {
 		if err != nil {
 			panic(err)
 		}
+		if info.IsDir() {
+			continue
+		}
 		if walker.Path() == root {
 			continue
 		}
-		list = append(list, info)
+		rPath, err := filepath.Rel(root, walker.Path())
+		if err != nil {
+			panic(err)
+		}
+		list = append(list, FileInfo{FullPath: walker.Path(), RelativePath: rPath, Info: info})
 	}
 	return list
 }
 
-func recursiveLocalList(root string) []os.FileInfo {
-	list := []os.FileInfo{}
+func recursiveLocalList(root string) []FileInfo {
+	list := []FileInfo{}
 	err := filepath.Walk(root,
 		func(path string, info os.FileInfo, err error) error {
 			if err != nil {
@@ -45,7 +58,12 @@ func recursiveLocalList(root string) []os.FileInfo {
 			if path == root {
 				return nil
 			}
-			list = append(list, info)
+			fullPath := filepath.Join(path, info.Name())
+			rPath, err := filepath.Rel(root, fullPath)
+			if err != nil {
+				panic(err)
+			}
+			list = append(list, FileInfo{FullPath: fullPath, RelativePath: rPath, Info: info})
 			return nil
 		})
 	if err != nil {

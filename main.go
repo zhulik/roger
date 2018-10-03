@@ -53,6 +53,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	defer sconn.Close()
 
-	syncer.Sync(sconn, *localDir, url, *workers)
+	syncer.Sync(sconn, *localDir, url.Path, *workers)
 }
