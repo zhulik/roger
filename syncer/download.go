@@ -11,12 +11,7 @@ import (
 
 type FileProgressInfo struct {
 	Info     FileInfo
-	Progress ProgressInfo
-}
-
-type ProgressInfo struct {
-	Increment int64
-	Total     int64
+	Progress int64
 }
 
 func preparePath(fPath string) error {
@@ -24,7 +19,7 @@ func preparePath(fPath string) error {
 	return os.MkdirAll(parent, os.ModePerm)
 }
 
-func progressCopy(r io.Reader, w io.Writer, progress chan<- ProgressInfo) {
+func progressCopy(r io.Reader, w io.Writer, progress chan<- int64) {
 	counter := &WriteCounter{Writer: w, Progress: progress}
 	io.Copy(counter, r)
 	close(progress)
@@ -46,7 +41,7 @@ func download(conn *sftp.Client, info FileInfo, to string, progress chan<- FileP
 		panic(err)
 	}
 	defer t.Close()
-	pChan := make(chan ProgressInfo)
+	pChan := make(chan int64)
 	go progressCopy(f, t, pChan)
 	for p := range pChan {
 		progress <- FileProgressInfo{Info: info, Progress: p}

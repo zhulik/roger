@@ -10,11 +10,6 @@ import (
 	"github.com/vbauerster/mpb/decor"
 )
 
-type RootSize struct {
-	Count int64
-	Size  int64
-}
-
 type RootStat struct {
 	Size       int64
 	Downloaded int64
@@ -27,35 +22,37 @@ func overallSize(files []FileInfo) (size int64) {
 	return
 }
 
-func findRoots(files []FileInfo) map[string]*RootSize {
-	rootSet := map[string]*RootSize{}
+func findRoots(files []FileInfo) map[string]int64 {
+	rootSet := map[string]int64{}
 	for _, file := range files {
 		root := strings.Split(file.RelativePath, string(filepath.Separator))[0]
 		if _, ok := rootSet[root]; !ok {
-			rootSet[root] = &RootSize{Count: 1, Size: file.Info.Size()}
+			rootSet[root] = file.Info.Size()
 		} else {
-			rootSet[root].Count++
-			rootSet[root].Size += file.Info.Size()
+			rootSet[root] += file.Info.Size()
 		}
 	}
 	return rootSet
 }
 
 func truncateString(str string, num int) string {
-	bnoden := str
-	if len(str) > num {
+	bnoden := []rune(str)
+	if len(bnoden) < num {
+		bnoden = append(bnoden, []rune(strings.Repeat(" ", num-len(bnoden)))...)
+	}
+	if len(bnoden) > num {
 		if num > 3 {
 			num -= 3
 		}
-		bnoden = str[0:num] + "..."
+		bnoden = append(bnoden[0:num], []rune("...")...)
 	}
-	return bnoden
+	return string(bnoden)
 }
 
 func addBar(p *mpb.Progress, name string, size int64) *mpb.Bar {
 	return p.AddBar(size,
 		mpb.PrependDecorators(
-			decor.CountersKibiByte(truncateString(name, 20)+": % 6.1f / % 6.1f"),
+			decor.CountersKibiByte(truncateString(name, 30)+": %-8.1f / %-8.1f"),
 		),
 		mpb.AppendDecorators(
 			decor.AverageETA(decor.ET_STYLE_MMSS),
@@ -80,17 +77,17 @@ func outputWorker(files []FileInfo, progress <-chan FileProgressInfo, wg *sync.W
 	rootStats := map[string]*RootStat{}
 
 	for root, stats := range roots {
-		bars[root] = addBar(p, root, stats.Size)
-		rootStats[root] = &RootStat{Size: stats.Size}
+		bars[root] = addBar(p, root, stats)
+		rootStats[root] = &RootStat{Size: stats}
 	}
 
 	for p := range progress {
 		root := strings.Split(p.Info.RelativePath, string(filepath.Separator))[0]
 
-		totalProgress.IncrBy(int(p.Progress.Increment), time.Since(start))
+		totalProgress.IncrBy(int(p.Progress), time.Since(start))
 
-		bars[root].IncrBy(int(p.Progress.Increment), time.Since(start))
-		rootStats[root].Downloaded += p.Progress.Increment
+		bars[root].IncrBy(int(p.Progress), time.Since(start))
+		rootStats[root].Downloaded += p.Progress
 	}
 	p.Wait()
 }

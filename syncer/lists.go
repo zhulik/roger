@@ -3,6 +3,7 @@ package syncer
 import (
 	"os"
 	"path/filepath"
+	"sort"
 
 	"github.com/pkg/sftp"
 )
@@ -36,5 +37,8 @@ func recursiveRemoteList(conn *sftp.Client, root string) []FileInfo {
 		}
 		list = append(list, FileInfo{FullPath: walker.Path(), RelativePath: rPath, Info: info})
 	}
+	sort.Slice(list, func(i, j int) bool {
+		return list[i].Info.Size() < list[j].Info.Size()
+	})
 	return list
 }
