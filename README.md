@@ -10,11 +10,15 @@ files from your server if it doesn't support rsync.
 
 ## Usage
 
+### Single run mode
 `roger -local=/home/user/files -remote=sftp://server.example:22/path/files -workers 16`
+
+### Daemon mode
+
+`roger -local=/home/user/files -remote=sftp://server.example:22/path/files -workers 16 -daemon -interval 120`
 
 ## Roadmap
 
 - Resuming
 - Proper logging when works as a daemon
-- Scheduled syncs
 - Event hooks(started, in progress, finished)

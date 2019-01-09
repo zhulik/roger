@@ -2,13 +2,12 @@ package main
 
 import (
 	"flag"
-	"net/url"
-
-	"github.com/zhulik/roger/syncer"
-
 	"log"
+	"net/url"
+	"time"
 
 	"github.com/pkg/sftp"
+	"github.com/zhulik/roger/syncer"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -16,7 +15,28 @@ var (
 	localDir  = flag.String("local", "", "Local directory path")
 	remoteURL = flag.String("remote", "", "Remote directory URL")
 	workers   = flag.Int("workers", 16, "Count of download workers")
+
+	// daemon options
+	daemon   = flag.Bool("daemon", false, "Run in daemon mode")
+	interval = flag.Int64("interval", 120, "Interval between syncronizations (seconds)")
 )
+
+func runSync(url *url.URL, config ssh.ClientConfig) {
+	log.Println("Connecting...")
+
+	conn, err := ssh.Dial("tcp", url.Host, &config)
+	if err != nil {
+		panic(err)
+	}
+
+	sconn, err := sftp.NewClient(conn, sftp.MaxPacket(1<<15))
+	if err != nil {
+		panic(err)
+	}
+	defer sconn.Close()
+
+	syncer.Sync(sconn, *localDir, url.Path, *workers)
+}
 
 func main() {
 	flag.Parse()
@@ -42,18 +62,14 @@ func main() {
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 	}
 
-	log.Println("Connecting...")
-
-	conn, err := ssh.Dial("tcp", url.Host, &config)
-	if err != nil {
-		panic(err)
+	if *daemon {
+		log.Println("Running in daemon mode...")
+		for {
+			runSync(url, config)
+			log.Printf("Waiting %d seconds...", *interval)
+			time.Sleep(time.Duration(*interval) * time.Second)
+		}
+	} else {
+		runSync(url, config)
 	}
-
-	sconn, err := sftp.NewClient(conn, sftp.MaxPacket(1<<15))
-	if err != nil {
-		panic(err)
-	}
-	defer sconn.Close()
-
-	syncer.Sync(sconn, *localDir, url.Path, *workers)
 }

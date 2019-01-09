@@ -67,7 +67,7 @@ func outputWorker(files []FileInfo, progress <-chan FileProgressInfo, wg *sync.W
 	size := overallSize(files)
 	roots := findRoots(files)
 
-	p := mpb.New()
+	p := mpb.New(mpb.WithRefreshRate(1 * time.Second))
 
 	start := time.Now()
 	totalProgress := addBar(p, "Total", size)
