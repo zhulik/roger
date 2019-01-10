@@ -8,6 +8,7 @@ import (
 
 	"github.com/pkg/sftp"
 	"github.com/zhulik/roger/syncer"
+	"github.com/zhulik/roger/web"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -19,6 +20,10 @@ var (
 	// daemon options
 	daemon   = flag.Bool("daemon", false, "Run in daemon mode")
 	interval = flag.Int64("interval", 120, "Interval between syncronizations (seconds)")
+
+	// web options
+	webInterface = flag.Bool("web", false, "Run web interface")
+	port         = flag.Int("port", 8088, "Port for web interface")
 )
 
 func runSync(url *url.URL, config ssh.ClientConfig) {
@@ -64,6 +69,10 @@ func main() {
 
 	if *daemon {
 		log.Println("Running in daemon mode...")
+		if *webInterface {
+			go web.Serve(*port)
+		}
+
 		for {
 			runSync(url, config)
 			log.Printf("Waiting %d seconds...", *interval)
