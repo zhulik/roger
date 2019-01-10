@@ -1,0 +1,8 @@
+[Unit]
+Description=Roger daemon
+
+[Service]
+ExecStart=/path/to/roger -local=/local/path -remote=sftp://username:password@example.com:22/remote/path -daemon
+
+[Install]
+WantedBy=default.target
