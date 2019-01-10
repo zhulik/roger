@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"time"
 
 	"github.com/pkg/sftp"
 )
@@ -50,8 +51,10 @@ func Sync(conn *sftp.Client, local string, remote string, workers int) {
 	}()
 
 	logWg := sync.WaitGroup{}
-	logWg.Add(1)
-	go outputWorker(filesToSync, progress, &logWg)
+	logWg.Add(2)
+	go updateStorage(filesToSync, progress, &logWg)
+	time.Sleep(1 * time.Second)
+	go outputWorker(&logWg)
 
 	wg.Wait()
 	close(progress)

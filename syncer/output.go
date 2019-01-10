@@ -8,12 +8,8 @@ import (
 
 	"github.com/vbauerster/mpb"
 	"github.com/vbauerster/mpb/decor"
+	"github.com/zhulik/roger/storage"
 )
-
-type RootStat struct {
-	Size       int64
-	Downloaded int64
-}
 
 func overallSize(files []FileInfo) (size int64) {
 	for _, info := range files {
@@ -62,32 +58,47 @@ func addBar(p *mpb.Progress, name string, size int64) *mpb.Bar {
 	)
 }
 
-func outputWorker(files []FileInfo, progress <-chan FileProgressInfo, wg *sync.WaitGroup) {
+func updateStorage(files []FileInfo, progress <-chan FileProgressInfo, wg *sync.WaitGroup) {
 	defer wg.Done()
 	size := overallSize(files)
 	roots := findRoots(files)
-
-	p := mpb.New(mpb.WithRefreshRate(1 * time.Second))
-
-	start := time.Now()
-	totalProgress := addBar(p, "Total", size)
-
-	bars := map[string]*mpb.Bar{}
-
-	rootStats := map[string]*RootStat{}
-
-	for root, stats := range roots {
-		bars[root] = addBar(p, root, stats)
-		rootStats[root] = &RootStat{Size: stats}
-	}
+	storage := storage.GetInstance()
+	storage.Initialize(size, roots)
 
 	for p := range progress {
 		root := strings.Split(p.Info.RelativePath, string(filepath.Separator))[0]
 
-		totalProgress.IncrBy(int(p.Progress), time.Since(start))
+		storage.Total.Progress += p.Progress
+		storage.Files[root].Progress += p.Progress
+	}
+	storage.Reset()
+}
 
-		bars[root].IncrBy(int(p.Progress), time.Since(start))
-		rootStats[root].Downloaded += p.Progress
+func outputWorker(wg *sync.WaitGroup) {
+	defer wg.Done()
+	storage := storage.GetInstance()
+
+	p := mpb.New(mpb.WithRefreshRate(1 * time.Second))
+
+	totalProgress := addBar(p, "Total", storage.Total.Total)
+
+	bars := map[string]*mpb.Bar{}
+
+	for root, stats := range storage.Files {
+		bars[root] = addBar(p, root, stats.Total)
+	}
+
+	var start time.Time
+
+	for storage.Total != nil {
+		start = time.Now()
+
+		totalProgress.IncrBy(int(storage.Total.Progress), time.Since(start))
+
+		for root, stats := range storage.Files {
+			bars[root].IncrBy(int(stats.Progress), time.Since(start))
+		}
+		time.Sleep(1 * time.Second)
 	}
 	p.Wait()
 }
