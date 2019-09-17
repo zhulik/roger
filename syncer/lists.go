@@ -22,6 +22,9 @@ func recursiveRemoteList(conn *sftp.Client, root string) []FileInfo {
 			panic(err)
 		}
 		info, err := conn.Stat(walker.Path())
+		if os.IsNotExist(err) {
+			continue // Can't read file stats, most likely it was deleted, skipping...
+		}
 		if err != nil {
 			panic(err)
 		}
