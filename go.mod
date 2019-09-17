@@ -4,6 +4,7 @@ go 1.13
 
 require (
 	github.com/VividCortex/ewma v1.1.1 // indirect
+	github.com/golangci/golangci-lint v1.18.0 // indirect
 	github.com/mattn/go-isatty v0.0.9 // indirect
 	github.com/pkg/sftp v1.10.1
 	github.com/vbauerster/mpb v3.4.0+incompatible

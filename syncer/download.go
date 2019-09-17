@@ -21,7 +21,10 @@ func preparePath(fPath string) error {
 
 func progressCopy(r io.Reader, w io.Writer, progress chan<- int64) {
 	counter := &WriteCounter{Writer: w, Progress: progress}
-	io.Copy(counter, r)
+	if _, err := io.Copy(counter, r); err != nil {
+		panic(err)
+	}
+
 	close(progress)
 }
 
@@ -46,5 +49,7 @@ func download(conn *sftp.Client, info FileInfo, to string, progress chan<- FileP
 	for p := range pChan {
 		progress <- FileProgressInfo{Info: info, Progress: p}
 	}
-	os.Rename(tmpPath, to)
+	if err = os.Rename(tmpPath, to); err != nil {
+		panic(nil)
+	}
 }
